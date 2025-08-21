@@ -2,3 +2,4 @@
 *.Rproj
 .Rbuildignore
 R/clean.R
+docs
