@@ -1,12 +1,14 @@
 Package: deitasets
-Title: What the Package Does (One Line, Title Case)
+Title: Engaging Datasets for Socially Relevant Statistics Exercises
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    c(person(given = "Jessalyn", family = "Sebastian", email = "jessalys@uci.edu", role = c("aut", "cre")),
+    person(given = "Volodymyr", family = "Minin", email = "vminin@uci.edu", role = c("aut", "rev")))
+Description: This package provides datasets for use in introductory statistics courses, focusing on topics of racial, socioeconomic, and gender-based disparities, where the goal is to ground statistical learning in real-world inequities. Created partly in response to data-erasure and anti-science rhetoric propagated during the Trump administration(s) in the U.S., this package invites students to ask hard questions, run real analyses, and see what the numbers actually say.
+License: MIT + file LICENSE
 Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Depends: 
+    R (>= 2.10)
