@@ -1,0 +1,239 @@
+---
+title: "`children` Data Demo: Overdispersion in Poisson Regression and Linear Contrasts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{`children` Data Demo: Overdispersion in Poisson Regression and Linear Contrasts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+# Load packages
+library(deitasets)
+library(gtsummary)
+library(Hmisc)
+```
+
+```{r}
+# Prepare data
+data(children)
+children$household_income <- factor(children$household_income,
+  levels = c(
+    "$0 to $10,000", "$10,001 to $20,000", "$20,001 to $30,000",
+    "$30,001 to $40,000", "$40,001 to $50,000", "$50,001 to $60,000",
+    "$60,001 to $75,000", "$75,001 to $100,000", "$100,001 to $150,000",
+    "$150,001 to $200,000", "$200,001 to $250,000", "$250,001 or more"
+  )
+)
+label(children$household_income) <- "Household Income"
+```
+
+## Poisson Regression
+
+Suppose we want to model the number of books a child owns as a function of their household's income. Because the response is a count, linear regression is not ideal: counts are non-negative, often skewed, and their variance typically changes with the mean. Poisson regression addresses this and provides inference on multiplicative (relative) effects.
+
+We model the number of children's books (\(Y_i\)) as a function of household income (\(x_i\)).
+
+**Model:**
+\[
+Y_i \mid x_i \sim \text{Poisson}(\mu_i), \quad \log \mu_i = \eta_i = x_i^\top \beta.
+\]
+
+Here, \(\mu_i = E[Y_i \mid x_i]\) and the canonical log link ensures \(\mu_i > 0\).
+
+The Poisson GLM implies the mean-variance relationship:
+\[
+\text{Var}(Y_i \mid x_i) = \mu_i.
+\]
+
+Under this model, coefficients \(\beta\) are estimated by maximizing the Poisson log-likelihood; exponentiated coefficients correspond to rate ratios relative to a reference income level.
+
+We fit a Poisson generalized linear model (GLM) with a log link:
+
+```{r}
+mdl_pois <- glm(child_num_books ~ household_income,
+  data = children,
+  family = poisson(link = "log")
+)
+tbl_regression(mdl_pois, exponentiate = TRUE)
+```
+
+The confidence intervals here are extremely narrow. Should we expect that? Poisson regression assumes the variance equals the mean within each group (the equidispersion assumption). If the data are overdispersed (variance > mean), standard errors will be underestimated and CIs too tight.
+
+If the equidispersion assumption holds, the model-based standard errors and CIs are appropriate. However, if the data are overdispersed, Poisson standard errors are too small and CIs too narrow.
+
+### A Quick Variance Diagnostic: Pearson Residuals
+
+The Pearson residual for observation \(i\) is:
+
+\[
+r_i^{(P)} = \frac{y_i - \hat{\mu}_i}{\sqrt{V(\hat{\mu}_i)}},
+\]
+
+where \(V(\mu)\) is the variance function. For the Poisson GLM, \(V(\mu) = \mu\), so:
+
+\[
+r_i^{(P)} = \frac{y_i - \hat{\mu}_i}{\sqrt{\hat{\mu}_i}}.
+\]
+
+**Key property:** If the mean is correctly specified and the variance follows the Poisson mean-variance relationship, then:
+
+\[
+E\left[(r_i^{(P)})^2\right] \approx 1.
+\]
+
+Thus, plotting squared Pearson residuals against fitted values should hover around a horizontal line at 1. Systematic deviations indicate variance misspecification (such as overdispersion).
+
+```{r}
+fitted_values <- predict(mdl_pois, type = "response")
+sq_pearson_residuals <- (residuals(mdl_pois, type = "pearson"))^2
+
+# Plot squared Pearson residuals vs fitted values
+plot(fitted_values, sq_pearson_residuals,
+     xlab = "Fitted Values",
+     ylab = "Squared Pearson Residuals",
+     main = "Squared Pearson Residuals vs Fitted Values",
+     pch = 16, col = "blue")
+# Add a smoother to the plot
+smooth <- lowess(fitted_values, sq_pearson_residuals)
+lines(smooth, col = "red", lwd = 2)
+
+# Zoom in on the plot
+ylim <- c(min(smooth$y) * 0.9, max(smooth$y) * 1.1)
+plot(fitted_values, sq_pearson_residuals,
+  xlab = "Fitted Values",
+  ylab = "Squared Pearson Residuals",
+  main = "Zoomed-In View: Squared Pearson Residuals vs Fitted Values",
+  pch = 16, col = "blue", ylim = ylim)
+lines(lowess(fitted_values, sq_pearson_residuals), col = "red", lwd = 2)
+```
+
+A lowess (smoothed) curve drifting well above 1 (and/or a large \(\hat{\phi}\)) is consistent with overdispersion.
+
+## Modeling Overdispersed Counts
+
+Common approaches include:
+
+- Quasi-Poisson (variance proportional to the mean, rather than equal),
+- Negative binomial (variance quadratic in the mean),
+- Robust (sandwich) standard errors for the Poisson model.
+
+These differ in how they alter the variance and in what they assume about the data-generating process.
+
+### Quasi-Poisson
+
+Here, we keep the Poisson mean model and link, but allow a free dispersion parameter \(\phi > 1\):
+\[
+\text{Var}(Y_i \mid x_i) = \phi \, \mu_i.
+\]
+Estimation proceeds via quasi-likelihood. Point estimates \(\hat{\beta}\) match the Poisson GLM, but standard errors are inflated by \(\hat{\phi}\), where \(\hat{\phi}\) is often the Pearson chi-square divided by residual degrees of freedom. This directly widens confidence intervals and adjusts p-values.
+
+```{r}
+mdl_quasi <- glm(child_num_books ~ household_income,
+  data = children,
+  family = quasipoisson(link = "log")
+)
+tbl_regression(mdl_quasi, exponentiate = TRUE)
+```
+
+Note how the confidence intervals widen relative to the Poisson fit.
+
+### Negative Binomial
+
+Here, we model the data as coming from a Negative Binomial distribution, which yields a variance that grows quadratically with the mean:
+\[
+\text{Var}(Y_i \mid x_i) = \mu_i + \alpha \, \mu_i^2,
+\]
+with dispersion \(\alpha > 0\). The mean model remains:
+\[
+\log \mu_i = x_i^\top \beta.
+\]
+
+```{r}
+# Compute robust SEs with sandwich package
+vcov <- sandwich::vcovHC(mdl_pois, type = "HC0")
+tbl_regression(mdl_pois, tidy_fun = gtsummary::tidy_robust,
+               vcov = vcov, exponentiate = TRUE)
+
+```
+
+### How do you choose?
+
+1. **Fix underestimation of uncertainty, same mean model:**
+  - Use quasi-Poisson or robust SEs. They typically yield similar results, but are conceptually distinct.
+  - Quasi-Poisson also returns an estimated dispersion parameter (\(\phi\)).
+
+2. **Need a full distribution for counts or variance grows quadratically with the mean:**
+  - Use negative binomial regression. This is useful for simulation, AIC-based model selection, or prediction intervals.
+
+3. **Diagnostics:**
+  - Check the estimated dispersion parameter (\(\hat{\phi}\)) using Pearson-based methods.
+  - Plot squared Pearson residuals vs. fitted values and look for a horizontal trend around 1.
+  - Compare inferential conclusions across methods. If both negative binomial and quasi-Poisson materially change inference compared to Poisson, it strongly suggests that the Poisson equidispersion assumption was too restrictive.
+
+4. **Additional Notes:**
+  - Overdispersion can result from unmodeled heterogeneity (e.g., omitted covariates, clustering), zero-inflation, or temporal/spatial correlation.
+  - If patterns persist after switching variance models, consider refining the mean structure or using clustered/GLMM approaches.
+
+## Interpreting the Coefficients and Using Linear Contrasts
+
+With a log link, coefficients are on the log scale; exponentiating yields rate ratios (RRs). For a given income category \(k\) versus the reference category (here "$0 to $10,000"), \(\exp(\beta_k)\) is the multiplicative change in expected book counts.
+
+Sometimes we need comparisons between two non-reference groups. You can either relevel the factor or compute a linear contrast on the original model.
+
+Here's how we'd do it the naive way, by changing the baseline and redoing the regression:
+```{r}
+children$household_income <- relevel(children$household_income, ref = "$50,001 to $60,000")
+mdl_relevel <- glm(child_num_books ~ household_income,
+  data = children,
+  family = quasipoisson(link = "log")
+)
+tbl_regression(mdl_relevel, exponentiate = TRUE)
+```
+
+We observe that the $100-150k group has 1.35 (1.18, 1.55) times the expected number of books compared to the $50-60k group.
+
+We can also obtain the same comparison from the original reference group ("$0 to $10,000") by forming a contrast \(L \beta\), where \(L\) selects the difference between the two relevant category coefficients.
+
+Alternatively, the same information can be derived by computing a contrast using the original model:
+
+```{r}
+contrasts <- list(
+  "100-150k vs 50-60k" = c(0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0)
+)
+# Get the difference in coefficients
+diff <- coef(mdl_quasi) %*% contrasts[[1]]
+# And the standard error of the estimator
+se <- sqrt(t(contrasts[[1]]) %*% vcov(mdl_quasi) %*% contrasts[[1]])
+# Then we can do our inference:
+z <- diff / se
+p_value <- 2 * (1 - pnorm(abs(z)))
+exp_diff <- exp(diff)
+data.frame(
+  Contrast = "100-150k vs 50-60k",
+  Estimate = exp_diff,
+  CI = paste0("(", round(exp(diff - 1.96 * se), 2), ", ", round(exp(diff + 1.96 * se), 2), ")"),
+  z = z,
+  p_value = p_value
+)
+```
+
+This RR and CI match what you get from the re-leveled model (down to some rounding error), without changing the baseline each time.
+
+## Takeaways
+- **Poisson GLM Assumption:** The Poisson GLM assumes \(\text{Var}(Y \mid X) = \mu\). If the mean and variance are correctly specified, squared Pearson residuals should hover around 1.
+
+- **Overdispersion Impact:** Ignoring overdispersion inflates type I error rates. This can lead to overly narrow confidence intervals and underestimated standard errors.
+
+- **Addressing Overdispersion:**
+  - Use **quasi-Poisson** or **robust standard errors** to fix inference while keeping the same mean model.
+  - Use **negative binomial regression** to adjust the variance model parametrically.
+
+- **Linear Contrasts:** Linear contrasts allow direct comparisons between any two income groups without re-leveling the factor. This avoids the need to refit the model for each comparison.

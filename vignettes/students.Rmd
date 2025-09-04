@@ -1,0 +1,266 @@
+---
+title: "`students` Data Demo: Confounding and Factors Associated with Postsecondary Education"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{`students` Data Demo: Confounding and Factors Associated with Postsecondary Education}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, message = FALSE}
+library(deitasets)
+library(table1)
+library(forcats)
+library(gtsummary)
+```
+
+## Overview
+
+The High School Longitudinal Study of 2009 (HSLS:09) is a longitudinal
+study of more than 21,000 9th graders in who were followed through their
+secondary and postsecondary years. The study focuses on understanding
+students' trajectories from the beginning of high school into postsecondary
+education, the workforce, and
+beyond. This dataset is a cleaned and abbreviated version of the original
+HSLS:09 dataset. Read more [here](https://nces.ed.gov/surveys/hsls09).
+
+For the purposes of this vignette, we will be focusing on some of the 
+factors that go into whether a student enrolls in postsecondary education
+after high school.
+
+
+## Exploratory Analysis
+
+Below I load and manipulate the data a bit to create some new variables. The first is a binary variable indicating whether the student enrolled in any kind of postsecondary education
+after high school, which will be our outcome of interest in this vignette.
+
+Here, I make a ``Table 1'' and stratify it by postsecondary enrollment status, excluding students with missing data on this variable. This is because it is our outcome of interest in this vignette, and we can compare descriptive statistics of variables of interest across the two groups (those who enrolled in postsecondary education and those who did not). If we had a different outcome of interest, we might choose to stratify by that variable instead.
+
+```{r data}
+data(students)
+students$postsecondary_indicator <- factor(
+  ifelse(
+    is.na(students$postsecondary_sector_survey4),
+    NA,
+    ifelse(students$postsecondary_sector_survey4 == "Not enrolled at postsecondary institution",
+           "No", "Yes")
+  ),
+  levels = c("No", "Yes")
+)
+students$gpa <- ifelse(rowSums(is.na(students[, grep("^gpa", names(students))])) > 0, 
+                       NA,
+                       rowMeans(students[, grep("^gpa", names(students))],
+                                na.rm = TRUE))
+students$expected_edu_collapsed <- fct_collapse(
+  students$expected_edu_survey1,
+  "No postsecondary education " = c("Less than high school",
+                                     "High school diploma or GED"),
+  "Postsecondary up to Bachelor's degree" = c("Start an Associate's degree",
+                           "Complete an Associate's degree",
+                          "Start a Bachelor's degree",
+                          "Complete a Bachelor's degree"),
+  "Graduate education" = c("Start a Master's degree",
+                        "Complete a Master's degree",
+                        "Start a PhD/MD/Law/other doctoral degree",
+                        "Complete a PhD/MD/Law/other doctoral degree")
+)
+# create several table1s, each with a different goal
+# write a function to neatly label all the columns for the tables
+relabel <- function(students_df) {
+  label(students_df$student_sex_survey1) <- "Student Sex"
+  label(students_df$feel_safe_survey1) <- "Student response to 'I feel safe at school.'"
+  label(students_df$student_race_eth_survey1) <- "Student Race/Ethnicity"
+  label(students_df$gpa) <- "High School GPA"
+  label(students_df$parent_pattern_survey1) <- "Parent Pattern"
+  label(students_df$math_quintile_survey1) <- "Math Assessment Quintile Score"
+  label(students_df$poverty_survey1) <- "Poverty Level"
+  label(students_df$expected_edu_collapsed) <- "Student's expected education level in 9th grade"
+  label(students_df$postsecondary_indicator) <- "Student enrolled in postsecondary education?"
+  return(students_df)
+}
+students <- relabel(students)
+
+# compare across whether student went to college
+students_np <- students[!is.na(students$postsecondary_indicator), ]
+students_np <- relabel(students_np)
+
+table1( ~ student_sex_survey1 + student_race_eth_survey1 +
+          gpa + poverty_survey1 + expected_edu_collapsed |
+          postsecondary_indicator, data = students_np)
+```
+
+## Logistic Regression
+
+We'll use logistic regression to model the relationship between race/ethnicity of a student
+and whether they enrolled in postsecondary education of some kind (including both 2-year and
+4-year institutions) after high school.
+
+We begin with an unadjusted model, and we collapse some of the smaller race groups into
+one category called "Other". The model we fit is then:
+
+$$\text{logit}(P(\text{Enrolls at Postsecondary Institution})) = \beta_0 + \beta_1 \mathbb{1}\{\text{Hispanic}\} + \beta_2 \mathbb{1}\{\text{Black/African-American}\} + \beta_3 \mathbb{1}\{\text{Asian}\} + \beta_4 \mathbb{1}\{\text{Other (non-White)}\}$$
+
+where the $\text{logit}(p)$ function is the log-odds, or $\ln\frac{p}{1-p}$. 
+
+```{r models}
+students$student_race_eth_survey1 <- fct_collapse(
+  students$student_race_eth_survey1,
+  "Other" = c("More than one race", "Amer. Indian/Alaska Native",
+              "Native Hawaiian/Pacific Islander")
+)
+# unadjusted
+mdl1 <- glm(postsecondary_indicator ~ student_race_eth_survey1,
+            family = "binomial", data = students)
+tbl_regression(mdl1, intercept = TRUE)
+```
+
+Our inference overall shows a statistically significant link between race 
+and enrollment in postsecondary education, with the odds of enrollment 
+being significantly lower for Black/African-American and Hispanic students 
+compared to White students. Turning back to the logistic regression equation
+can help us understand better the interpretations of the coefficients we have
+just estimated:
+
+\begin{align*}
+\text{logit}(\hat P(\text{Enrolls at Postsecondary Institution})) &= \hat\beta_0 + \hat\beta_1 \mathbb{1}\{\text{Hispanic}\} + \hat\beta_2 \mathbb{1}\{\text{Black/African-American}\} + \hat\beta_3 \mathbb{1}\{\text{Asian}\} + \hat\beta_4 \mathbb{1}\{\text{Other (non-White)}\}\\
+  &= 1.2 - 0.40 \mathbb{1}\{\text{Hispanic}\} - 0.39 \mathbb{1}\{\text{Black/African-American}\} + 0.89 \mathbb{1}\{\text{Asian}\} - 0.17 \mathbb{1}\{\text{Other (non-White)}\}
+\end{align*}
+
+For a White student, the reference here, all the indicator functions are zero:
+
+\begin{align*}
+\text{logit}(\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{White})) &= 1.2 - 0.40 \mathbb{1}\{\text{Hispanic}\} - 0.39 \mathbb{1}\{\text{Black/African-American}\} + 0.89 \mathbb{1}\{\text{Asian}\} - 0.17 \mathbb{1}\{\text{Other (non-White)}\} \\
+&= 1.2 - 0.40 \times 0 - 0.39 \times 0 + 0.89 \times 0 - 0.17 \times 0
+\end{align*}
+
+$$ \frac{\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{White})}{1-\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{White})} = e^{1.2} \approx  3.32 $$
+
+and,
+
+$$ \hat P(\text{Enrolls at Postsecondary Institution}\mid\text{White}) = \frac{e^{1.2}}{1+e^{1.2}} \approx 0.77. $$
+
+So the intercept represents the log-odds of the reference group enrolling at a postsecondary institution after high school. For a Hispanic student, the indicator function for Hispanic is 1, and all the others are zero:
+
+\begin{align*}
+\text{logit}(\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{Hispanic})) &= 1.2 - 0.40 \mathbb{1}\{\text{Hispanic}\} - 0.39 \mathbb{1}\{\text{Black/African-American}\} + 0.89 \mathbb{1}\{\text{Asian}\} - 0.17 \mathbb{1}\{\text{Other (non-White)}\} \\
+&= 1.2 - 0.40 \times 1 - 0.39 \times 0 + 0.89 \times 0 - 0.17 \times 0
+\end{align*}
+
+\begin{align*}
+\frac{\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{Hispanic})}{1-\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{Hispanic})} = e^{1.2 - 0.40} \\
+  &= e^{1.2}e^{-0.4} 
+\end{align*}
+
+We can isolate the coefficient $\hat \beta_1$ for the Hispanic subpopulation by dividing the odds for Hispanic students by the odds for White students:
+
+\begin{align*}
+\frac{\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{Hispanic})/(1-\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{Hispanic}))}{\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{White})/(1-\hat P(\text{Enrolls at Postsecondary Institution}\mid\text{White}))} &= \frac{e^{1.2}e^{-0.4}}{e^{1.2}} \\
+  &= e^{-0.4} 
+\end{align*}
+
+The exponentiated estimated coefficient $exp^{\hat\beta_1}$ is the relative odds, or odds ratio, of a Hispanic student enrolling in postsecondary education compared to a White student. We can interpret the other coefficients similarly.
+
+We estimate that the odds of enrollment at a postsecondary institution after high school for 
+Hispanic students is approximately 33% lower than for White students 
+(95% CI: 26%, 39%), the odds of enrollment for Black/African-American 
+students is approximately 33% lower than for White students 
+(95% CI: 24%, 40%), and the odds of enrollment for Asian students is 
+approximately 2.43 times higher than for White students 
+(95% CI: 2.06, 2.89).
+
+## Adjusting for Other Covariates
+
+We can include other covariates in our analysis to try to isolate the relationship between race and postsecondary enrollment a little more. 
+These variables will affect our inference differently if they are associated with the predictor of interest (race) or the response, or both.
+Variables associated with both the predictor and the response are often called confounders, and adjusting for them can help give more nuance to
+the unadjusted analysis above.
+
+Take, for example, parental education level. Especially for students born in the 1990s, like the students in this study, race is associated with parental
+education due to the lasting effects of segregation, redlining, and unequal access to schools and universities. These structural barriers limited
+educational opportunities for many non-White families, leading to racial disparities in education that still persist today. Parental education is also 
+strongly linked to a child's education level because it often shapes access to resources like books, tutoring, school quality, and college expectations.
+Parents with more education are also more likely to value and support academic achievement, which can directly influence their children's educational outcomes.
+
+Let's create a new variable that indicates whether at least one parent has attended college (defined here as having attained at least a 2-year degree).
+
+```{r}
+students$parent_attended_college <- relevel(students$parent_attended_college,
+                                            ref = "No")
+label(students$parent_attended_college) <- "At least one parent obtained a postsecondary degree"
+```
+
+We'll include it in our logistic regression:
+
+$$\text{logit}(P(\text{Enrolls at Postsecondary Institution})) = \beta_0 + \beta_1 \mathbb{1}\{\text{Hispanic}\} + \beta_2 \mathbb{1}\{\text{Black/African-American}\} + \beta_3 \mathbb{1}\{\text{Asian}\} + \beta_4 \mathbb{1}\{\text{Other (non-White)}\} + \beta_5 \mathbb{1}\{\text{Parent Attended College}\}$$
+
+```{r}
+mdl2 <- glm(postsecondary_indicator ~ student_race_eth_survey1 +
+            parent_attended_college,
+            family = "binomial", data = students)
+tbl_regression(mdl2, intercept = TRUE)
+```
+
+
+We can see clearly how including this variable affected our inference on the race/ethnicity covariate we already had. The coefficients for Hispanic and Other race/ethnicity
+groups are no longer significantly nonzero, and the coefficient for the Black/African-American subpopulation is much closer to zero.
+
+Including this covariate also changes our interpretation of the coefficients slightly. For example, to isolate $\hat \beta_1$, the coefficient for the Hispanic subpopulation, we now compare Hispanic and White students \emph{at the same level of parental education}. That is, we fix $\text{ParentAttendedCollege} = z$, where $z \in \{0, 1\}$.
+
+For Hispanic students with parental education level $z$:
+
+\begin{align*}
+\text{logit}(\hat P(\text{Enrolls at Postsecondary Institution} \mid \text{Hispanic}, \text{ParentEd}=z)) &= \hat\beta_0 + \hat\beta_1 + \hat\beta_5 z
+\end{align*}
+
+For White students with the *same* parental education level $z$:
+
+\begin{align*}
+\text{logit}(\hat P(\text{Enrolls at Postsecondary Institution} \mid \text{White}, \text{ParentEd}=z)) &= \hat\beta_0 + \hat\beta_5 z
+\end{align*}
+
+Dividing the odds for Hispanic students by the odds for White students \emph{with the same parental education level}:
+
+\begin{align*}
+\frac{
+  \hat P(\text{Enrolls} \mid \text{Hispanic}, \text{ParentEd}=z)/(1 - \hat P(\text{Enrolls} \mid \text{Hispanic}, \text{ParentEd}=z))
+}{
+  \hat P(\text{Enrolls} \mid \text{White}, \text{ParentEd}=z)/(1 - \hat P(\text{Enrolls} \mid \text{White}, \text{ParentEd}=z))
+}
+&= \frac{e^{\hat\beta_0 + \hat\beta_1 + \hat\beta_5 z}}{e^{\hat\beta_0 + \hat\beta_5 z}} = e^{\hat\beta_1}
+\end{align*}
+
+The exponentiated estimated coefficient $e^{\hat\beta_1}$ is then the relative odds, or odds ratio, of a Hispanic student enrolling in postsecondary education compared to a White student \emph{with the same parental education level}. We can interpret the other coefficients similarly, each representing differences in odds while holding other covariates constant.
+
+It could be argued that a large part of the relationship between parental education and education of the child is mediated through income. Families with more education often have higher incomes, which can provide more resources and opportunities for their children.
+In these data, we have both the income level of the family and a poverty level variable that indicates whether the family's income is below or above certain thresholds relative to the federal poverty level. Here, we include the poverty level variable in our model.
+
+```{r}
+# Explicitly setting the reference group here to around median income
+students$poverty_survey1 <- relevel(students$poverty_survey1,
+                                    ref = "Between 130% and 185% poverty threshold")
+label(students$poverty_survey1) <- "Income Level Relative to Poverty Line"
+mdl3 <- glm(postsecondary_indicator ~ student_race_eth_survey1 +
+            parent_attended_college + poverty_survey1,
+            family = "binomial", data = students)
+tbl_regression(mdl3, intercept = TRUE)
+```
+
+Relative to the reference, which is around the median income level, students from families with income levels below the poverty line have significantly lower odds of enrolling in postsecondary education, while students from families with higher income levels have significantly higher odds of enrolling in postsecondary education.
+Even having adjusted for this, though, parental education is still significantly associated with postsecondary enrollment, indicating that parental education has an effect on postsecondary enrollment beyond just income level.
+
+We once again see some interesting changes in our race/ethnicity coefficients.  The coefficient for the Black/African-American subpopulation is now not significantly different from zero, but the coefficient for the Hispanic subpopulation is now estimated to be greater than 0.
+This means that after adjusting for both parental education and income level, Hispanic students actually have higher odds of enrolling in postsecondary education than White students, or, in other words:
+
+We estimate that, comparing the subpopulation of Hispanic students to the subpopulation of White students with similar parental education and income levels, the odds of enrollment at a postsecondary institution after high school for Hispanic students
+are approximately $e^{0.22}\approx$ 1.25-fold (95% CI: 1.09, 1.40) the odds of enrollment for White students.
+
+Through both of these adjustments, we've also seen that Asian students tend to have higher enrollment rates than White students, even after adjusting for parental education and income level.
+It's doubtful that purely genetic factors are at play here, and more likely that other social and cultural factors are contributing to this trend. For example, some Asian cultures place a strong emphasis on education and academic achievement, which can lead to higher enrollment rates in postsecondary education. Additionally, some Asian families may have more resources and support systems in place to help their children succeed academically. These factors are not directly measured in this dataset, but they may be contributing to the observed trend.
+It's clearly important when interpreting the results of an analysis to consider what factors have been adjusted for and what factors have not been adjusted for, as this can greatly affect the conclusions that can be drawn from the data.
