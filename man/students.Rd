@@ -3,7 +3,7 @@
 \docType{data}
 \name{students}
 \alias{students}
-\title{NCES High School Study 2009}
+\title{NCES High School Longitudinal Study of 2009}
 \format{
 \subsection{\code{students}}{
 
@@ -11,7 +11,42 @@ A data frame with 23503 rows and 37 columns:
 \describe{
 \item{student_id}{Unique student identifier}
 \item{survey1_date}{Month and year of the base survey}
-...
+\item{student_sex_survey1}{Student sex as reported in the base survey}
+\item{student_race_survey1}{Student race as reported in the base survey}
+\item{stuent_dob_survey1}{Student month and year of birth as reported in the base survey}
+\item{parent1_edu_survey1}{Highest education level of parent 1 as reported in the base survey}
+\item{parent1_employ_survey1}{Employment status of parent 1 as reported in the base survey}
+\item{parent1_race_survey1}{Race of parent 1 as reported in the base survey}
+\item{parent2_edu_survey1}{Highest education level of parent 2 as reported in the base survey}
+\item{parent2_employ_survey1}{Employment status of parent 2 as reported in the base survey}
+\item{parent2_race_survey1}{Race of parent 2 as reported in the base survey}
+\item{parent_pattern_survey1}{Parenting pattern (e.g., single parent, two parents) as reported in the base survey}
+\item{household_size_survey1}{Number of people in the household as reported in the base survey}
+\item{poverty_survey1}{Household poverty status according to the 2008 Census threshold as reported in the base survey}
+\item{family_income_survey1}{Family income level as reported in the base survey}
+\item{first_language_survey1}{First language student learned  as reported in the base survey}
+\item{math_quintile_survey1}{Math assessment quintile score as reported in the base survey (1-5, 1 being lowest quintile and 5 being highest)}
+\item{favorite_subject_survey1}{Student's favorite school subject as reported in the base survey}
+\item{least_favorite_subject_survey1}{Student's least favorite school subject as reported in the base survey}
+\item{feel_safe_survey1}{Student response to the statement "I feel safe at school" as reported in the base survey}
+\item{expected_edu_survey1}{Student's expected level of education after high school as reported in the base survey}
+\item{FYA_associate_survey1}{Whether the student plans to pursue an associate degree in the first year after high school as reported in the base survey}
+\item{FYA_bachelor_survey1}{Whether the student plans to pursue a bachelor's degree in the first year after high school as reported in the base survey}
+\item{FYA_military_survey1}{Whether the student plans to join the military in the first year after high school as reported in the base survey}
+\item{FYA_job_survey1}{Whether the student plans to work in a job in the first year after high school as reported in the base survey}
+\item{survey2_date}{Date of the first follow-up}
+\item{enrollment_status_survey2}{Student's enrollment status in the first follow-up}
+\item{absences_survey2}{Number of absences reported in the six months prior to the first follow-up}
+\item{skipping_class_survey2}{Number of times skipped class in the six months prior to the first follow-up}
+\item{survey3_date}{Date of the second follow-up}
+\item{gpa_9th_survey3}{GPA in 9th grade as reported in the second follow-up}
+\item{gpa_10th_survey3}{GPA in 10th grade as reported in the second follow-up}
+\item{gpa_11th_survey3}{GPA in 11th grade as reported in the second follow-up}
+\item{gpa_12th_survey3}{GPA in 12th grade as reported in the second follow-up}
+\item{survey4_date}{Date of the third follow-up}
+\item{postsecondary_sector_survey4}{}
+\item{postsecondary_edu_survey4}{}
+\item{postsecondary_emp_survey4}{}
 }
 }
 }
@@ -22,6 +57,12 @@ A data frame with 23503 rows and 37 columns:
 students
 }
 \description{
-High school longitudinal study (add more later)
+The High School Longitudinal Study of 2009 (HSLS:09) is a nationally
+representative, longitudinal study of more than 21,000 9th graders in
+944 schools who will be followed through their secondary and postsecondary
+years. The study focuses on understanding students' trajectories from the
+beginning of high school into postsecondary education, the workforce, and
+beyond. This dataset is a cleaned and abbreviated version of the original
+HSLS:09 dataset, which can be obtained at the source link below.
 }
 \keyword{datasets}
