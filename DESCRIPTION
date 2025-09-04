@@ -4,7 +4,7 @@ Version: 0.0.0.9000
 Authors@R: 
     c(person(given = "Jessalyn", family = "Sebastian", email = "jessalys@uci.edu", role = c("aut", "cre")),
     person(given = "Volodymyr", family = "Minin", email = "vminin@uci.edu", role = c("aut", "rev")))
-Description: This package provides datasets for use in introductory statistics courses, focusing on topics of racial, socioeconomic, and gender-based disparities, where the goal is to ground statistical learning in real-world inequities. Created partly in response to data-erasure and anti-science rhetoric propagated during the Trump administration(s) in the U.S., this package invites students to ask hard questions, run real analyses, and see what the numbers actually say.
+Description: This package provides datasets for use in introductory statistics courses, focusing on topics of racial, socioeconomic, and gender-based disparities, where the goal is to ground statistical learning in real-world inequities. Created partly in response to a period of data erasure and anti-science sentiment in U.S., this package invites students to ask interesting questions, run real analyses, and see what the numbers actually say.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -12,3 +12,12 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Depends: 
     R (>= 2.10)
+Suggests: 
+    knitr,
+    rmarkdown,
+    forcats,
+    table1,
+    gtsummary,
+    sf,
+    tigris
+VignetteBuilder: knitr

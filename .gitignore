@@ -3,3 +3,6 @@
 .Rbuildignore
 R/clean.R
 docs
+inst/doc
+/doc/
+/Meta/
