@@ -20,6 +20,7 @@ Suggests:
     gtsummary,
     sf,
     tigris,
-    Hmisc
+    Hmisc,
+    broom
 VignetteBuilder: knitr
 URL: https://jessalynnsebastian.github.io/deitasets/
