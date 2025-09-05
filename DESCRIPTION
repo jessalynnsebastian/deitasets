@@ -21,6 +21,7 @@ Suggests:
     sf,
     tigris,
     Hmisc,
-    broom
+    broom,
+    broom.helpers
 VignetteBuilder: knitr
 URL: https://jessalynnsebastian.github.io/deitasets/
