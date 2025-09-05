@@ -23,6 +23,8 @@ Suggests:
     Hmisc,
     broom,
     broom.helpers,
-    sandwich
+    sandwich,
+    insight,
+    parameters
 VignetteBuilder: knitr
 URL: https://jessalynnsebastian.github.io/deitasets/
