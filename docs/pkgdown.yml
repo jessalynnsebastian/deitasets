@@ -1,0 +1,12 @@
+pandoc: '3.5'
+pkgdown: 2.1.1
+pkgdown_sha: ~
+articles:
+  children: children.html
+  executions: executions.html
+  ny_shooting: ny_shooting.html
+  students: students.html
+last_built: 2025-09-05T22:17Z
+urls:
+  reference: https://jessalynnsebastian.github.io/deitasets/reference
+  article: https://jessalynnsebastian.github.io/deitasets/articles

@@ -191,8 +191,19 @@ Parents with more education are also more likely to value and support academic a
 Let's create a new variable that indicates whether at least one parent has attended college (defined here as having attained at least a 2-year degree).
 
 ```{r}
-students$parent_attended_college <- relevel(students$parent_attended_college,
-                                            ref = "No")
+students$parent_attended_college <- factor(
+  ifelse(
+    is.na(students$parent1_edu_survey1) & is.na(students$parent2_edu_survey1),
+    NA,
+    students$parent1_edu_survey1 %in% c("Associate's degree", "Bachelor's degree",
+                                        "Master's degree", "Doctoral degree") |
+      students$parent2_edu_survey1 %in% c("Associate's degree",
+                                          "Bachelor's degree",
+                                          "Master's degree", "Doctoral degree")
+  ),
+  levels = c(FALSE, TRUE),
+  labels = c("No", "Yes")
+)
 label(students$parent_attended_college) <- "At least one parent obtained a postsecondary degree"
 ```
 

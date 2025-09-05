@@ -1,4 +1,4 @@
-#' NCES NEHS 2019
+#' NCES National Household Education Survey 2019
 #'
 #' The National Household Education Surveys Program (NHES), the flagship
 #' household survey program of the National Center for Education Statistics,

@@ -2,7 +2,10 @@
 *.Rproj
 .Rbuildignore
 R/clean.R
-docs
 inst/doc
 /doc/
 /Meta/
+
+# tmp: ignore some vignettes that aren't done
+vignettes/executions.Rmd
+vignettes/ny_shooting.Rmd

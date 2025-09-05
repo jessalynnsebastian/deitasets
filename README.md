@@ -1,0 +1,3 @@
+# Package `deitasets`: Engaging Datasets for Socially Relevant Statistics Exercises
+
+This package provides datasets for use in introductory statistics courses, focusing on topics of racial, socioeconomic, and gender-based disparities, where the goal is to ground statistical learning in real-world inequities. Created partly in response to a period of data erasure and anti-science sentiment in the U.S., this package invites students to ask interesting questions, run real analyses, and see what the numbers actually say.
