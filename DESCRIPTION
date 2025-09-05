@@ -19,6 +19,7 @@ Suggests:
     table1,
     gtsummary,
     sf,
-    tigris
+    tigris,
+    Hmisc
 VignetteBuilder: knitr
 URL: https://jessalynnsebastian.github.io/deitasets/
