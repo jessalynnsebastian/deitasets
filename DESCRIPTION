@@ -22,6 +22,7 @@ Suggests:
     tigris,
     Hmisc,
     broom,
-    broom.helpers
+    broom.helpers,
+    sandwich
 VignetteBuilder: knitr
 URL: https://jessalynnsebastian.github.io/deitasets/
